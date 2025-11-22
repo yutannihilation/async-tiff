@@ -531,9 +531,7 @@ async fn read_tag_value<F: MetadataFetch>(
         }
         Type::LONG => {
             let mut v = Vec::with_capacity(count as _);
-            for _ in 0..count {
-                v.push(Value::Unsigned(cursor.read_u32().await?))
-            }
+            cursor.read_u32_into(&mut v).await?;
             Ok(Value::List(v))
         }
         Type::SLONG => {

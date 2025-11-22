@@ -6,6 +6,7 @@ use futures::FutureExt;
 
 use crate::error::AsyncTiffResult;
 use crate::reader::{AsyncFileReader, EndianAwareReader, Endianness};
+use crate::tiff::Value;
 
 /// A data source that can be used with [`TiffMetadataReader`] and [`ImageFileDirectoryReader`] to
 /// load [`ImageFileDirectory`]s.
@@ -128,6 +129,17 @@ impl<'a, F: MetadataFetch> MetadataCursor<'a, F> {
     /// Read a u32 from the cursor, advancing the internal state by 4 bytes.
     pub(crate) async fn read_u32(&mut self) -> AsyncTiffResult<u32> {
         self.read(4).await?.read_u32()
+    }
+
+    pub(crate) async fn read_u32_into(&mut self, buf: &mut Vec<Value>) -> AsyncTiffResult<()> {
+        let n = buf.len();
+        let mut reader = self.read(4 * (n as u64)).await?;
+
+        for v in reader.read_u32_slice(n)? {
+            buf.push(Value::Unsigned(*v));
+        }
+
+        Ok(())
     }
 
     /// Read a i32 from the cursor, advancing the internal state by 4 bytes.

@@ -239,6 +239,7 @@ pub enum Endianness {
 pub(crate) struct EndianAwareReader {
     reader: Reader<Bytes>,
     endianness: Endianness,
+    buf: Vec<u8>,
 }
 
 impl EndianAwareReader {
@@ -246,12 +247,20 @@ impl EndianAwareReader {
         Self {
             reader: bytes.reader(),
             endianness,
+            buf: vec![],
         }
     }
 
     /// Read a u8 from the cursor, advancing the internal state by 1 byte.
     pub(crate) fn read_u8(&mut self) -> AsyncTiffResult<u8> {
         Ok(self.reader.read_u8()?)
+    }
+
+    /// Read `n` u8 values from the cursor, advancing the internal state by `n` byte.
+    pub(crate) fn read_u8_slice(&mut self, n: usize) -> AsyncTiffResult<&[u8]> {
+        self.buf.resize(n, 0);
+        self.reader.read_exact(&mut self.buf)?;
+        Ok(&self.buf)
     }
 
     /// Read a i8 from the cursor, advancing the internal state by 1 byte.
@@ -278,6 +287,19 @@ impl EndianAwareReader {
             Endianness::LittleEndian => Ok(self.reader.read_u32::<LittleEndian>()?),
             Endianness::BigEndian => Ok(self.reader.read_u32::<BigEndian>()?),
         }
+    }
+
+    pub(crate) fn read_u32_slice(&mut self, n: usize) -> AsyncTiffResult<&[u32]> {
+        self.buf.resize(4 * n, 0);
+        let buf_u32: &mut [u32] =
+            unsafe { std::slice::from_raw_parts_mut(self.buf.as_mut_ptr() as *mut u32, n) };
+
+        match self.endianness {
+            Endianness::LittleEndian => self.reader.read_u32_into::<LittleEndian>(buf_u32)?,
+            Endianness::BigEndian => self.reader.read_u32_into::<BigEndian>(buf_u32)?,
+        }
+
+        Ok(buf_u32)
     }
 
     pub(crate) fn read_i32(&mut self) -> AsyncTiffResult<i32> {
