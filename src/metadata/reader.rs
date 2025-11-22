@@ -223,6 +223,10 @@ impl ImageFileDirectoryReader {
     pub async fn read<F: MetadataFetch>(&self, fetch: &F) -> AsyncTiffResult<ImageFileDirectory> {
         let mut tags = HashMap::with_capacity(self.tag_count as usize);
         for tag_idx in 0..self.tag_count {
+            println!("\n\ntag_idx: {tag_idx}");
+            if tag_idx == 5 || tag_idx == 8 {
+                // continue;
+            }
             let (tag, value) = self.read_tag(fetch, tag_idx).await?;
             tags.insert(tag, value);
         }
@@ -260,21 +264,30 @@ async fn read_tag<F: MetadataFetch>(
     endianness: Endianness,
     bigtiff: bool,
 ) -> AsyncTiffResult<(Tag, Value)> {
+    println!("tag_offset: {tag_offset}, endianness: {endianness:?}, bigtiff: {bigtiff}",);
+
     let mut cursor = MetadataCursor::new_with_offset(fetch, endianness, tag_offset);
 
     let tag_name = Tag::from_u16_exhaustive(cursor.read_u16().await?);
+    println!("tag_name: {tag_name:?}");
 
     let tag_type_code = cursor.read_u16().await?;
+    println!("tag_type_code: {tag_type_code:?}");
+
     let tag_type = Type::from_u16(tag_type_code).expect(
         "Unknown tag type {tag_type_code}. TODO: we should skip entries with unknown tag types.",
     );
+    println!("tag_type: {tag_type:?}");
+
     let count = if bigtiff {
         cursor.read_u64().await?
     } else {
         cursor.read_u32().await?.into()
     };
+    println!("count: {count:?}");
 
     let tag_value = read_tag_value(&mut cursor, tag_type, count, bigtiff).await?;
+    println!("tag_value: {tag_value:?}");
 
     Ok((tag_name, tag_value))
 }
@@ -308,6 +321,7 @@ async fn read_tag_value<F: MetadataFetch>(
     };
 
     let value_byte_length = count.checked_mul(tag_size).unwrap();
+    println!("value_byte_length: {value_byte_length}");
 
     // Case 2: there is one value.
     if count == 1 {
@@ -495,7 +509,9 @@ async fn read_tag_value<F: MetadataFetch>(
     } else {
         cursor.read_u32().await?.into()
     };
+    println!("Seeking cursor to offset {offset}");
     cursor.seek(offset);
+    println!("Done");
 
     // Case 4: there is more than one value, and it doesn't fit in the offset field.
     match tag_type {
