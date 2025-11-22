@@ -224,9 +224,6 @@ impl ImageFileDirectoryReader {
         let mut tags = HashMap::with_capacity(self.tag_count as usize);
         for tag_idx in 0..self.tag_count {
             println!("\n\ntag_idx: {tag_idx}");
-            if tag_idx == 5 || tag_idx == 8 {
-                // continue;
-            }
             let (tag, value) = self.read_tag(fetch, tag_idx).await?;
             tags.insert(tag, value);
         }
