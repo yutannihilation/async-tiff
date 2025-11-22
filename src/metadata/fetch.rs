@@ -131,11 +131,14 @@ impl<'a, F: MetadataFetch> MetadataCursor<'a, F> {
         self.read(4).await?.read_u32()
     }
 
-    pub(crate) async fn read_u32_into(&mut self, buf: &mut Vec<Value>) -> AsyncTiffResult<()> {
-        let n = buf.len();
-        let mut reader = self.read(4 * (n as u64)).await?;
+    pub(crate) async fn read_u32_into(
+        &mut self,
+        buf: &mut Vec<Value>,
+        count: u64,
+    ) -> AsyncTiffResult<()> {
+        let mut reader = self.read(4 * (count as u64)).await?;
 
-        for v in reader.read_u32_slice(n)? {
+        for v in reader.read_u32_slice(count as usize)? {
             buf.push(Value::Unsigned(*v));
         }
 
