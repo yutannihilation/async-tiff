@@ -256,13 +256,6 @@ impl EndianAwareReader {
         Ok(self.reader.read_u8()?)
     }
 
-    /// Read `n` u8 values from the cursor, advancing the internal state by `n` byte.
-    pub(crate) fn read_u8_slice(&mut self, n: usize) -> AsyncTiffResult<&[u8]> {
-        self.buf.resize(n, 0);
-        self.reader.read_exact(&mut self.buf)?;
-        Ok(&self.buf)
-    }
-
     /// Read a i8 from the cursor, advancing the internal state by 1 byte.
     pub(crate) fn read_i8(&mut self) -> AsyncTiffResult<i8> {
         Ok(self.reader.read_i8()?)
